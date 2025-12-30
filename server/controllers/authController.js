@@ -37,20 +37,27 @@ exports.registerUser = async (req, res) => {
     });
 
     await user.save();
-    await sendEmail(
-    email,
-    "Verify your email - Fake News Detector",
-    `Your OTP is ${otp}. It is valid for 10 minutes.`
-  );
-    
 
-    res.status(201).json({
-  message: "OTP sent to email. Please verify."
-});
+    try {
+      await sendEmail(
+        email,
+        "Verify your email - Fake News Detector",
+        `Your OTP is ${otp}. It is valid for 10 minutes.`
+      );
 
+      res.status(201).json({ message: "OTP sent to email. Please verify." });
+    } catch (emailErr) {
+      try {
+        await User.deleteOne({ email });
+      } catch (delErr) {
+        console.error("Failed to delete user after email error:", delErr);
+      }
+      console.error("Failed to send OTP email:", emailErr);
+      return res.status(500).json({ message: "Failed to send OTP email" });
+    }
 
   } catch (error) {
-    db.users.deleteOne({ email: req.body.email });
+    console.error("Registration error:", error);
     res.status(500).json({ message: "Server error" });
   }
 };
