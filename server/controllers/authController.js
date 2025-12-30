@@ -9,52 +9,41 @@ exports.registerUser = async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
-  
-
-
-    // check if user already exists
     const existingUser = await User.findOne({ email });
-
-
-      // generate otp
-      const otp = generateOtp();
-
-      // otp valid for 10 minutes
-      const otpExpiry = Date.now() + 10 * 60 * 1000;
-
     if (existingUser) {
       return res.status(400).json({ message: "User already exists" });
     }
 
-   const hashedPassword = await bcrypt.hash(password, 10);
+    const otp = generateOtp();
+    const otpExpiry = Date.now() + 10 * 60 * 1000;
+
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     const user = new User({
       name,
       email,
       password: hashedPassword,
-      otp , 
-      otpExpiry
+      otp,
+      otpExpiry,
+      isVerified: false
     });
 
     await user.save();
 
+    // 🔥 Email should NOT break registration
     try {
       await sendEmail(
         email,
         "Verify your email - Fake News Detector",
         `Your OTP is ${otp}. It is valid for 10 minutes.`
       );
-
-      res.status(201).json({ message: "OTP sent to email. Please verify." });
-    } catch (emailErr) {
-      try {
-        await User.deleteOne({ email });
-      } catch (delErr) {
-        console.error("Failed to delete user after email error:", delErr);
-      }
-      console.error("Failed to send OTP email:", emailErr);
-      return res.status(500).json({ message: "Failed to send OTP email" });
+    } catch (err) {
+      console.error("OTP email failed:", err.message);
     }
+
+    return res.status(201).json({
+      message: "Account created. Please verify OTP sent to email."
+    });
 
   } catch (error) {
     console.error("Registration error:", error);
@@ -63,46 +52,38 @@ exports.registerUser = async (req, res) => {
 };
 
 
-exports.verifyOtp = async (req, res) => {
+exports.resendOtp = async (req, res) => {
   try {
-    const { email, otp } = req.body;
+    const { email } = req.body;
 
-    // find user by email
     const user = await User.findOne({ email });
-
     if (!user) {
-      return res.status(400).json({ message: "User not found" });
+      return res.status(404).json({ message: "User not found" });
     }
 
-    // already verified
     if (user.isVerified) {
       return res.status(400).json({ message: "Email already verified" });
     }
 
-    // check otp match
-    if (user.otp !== otp) {
-      return res.status(400).json({ message: "Invalid OTP" });
-    }
-
-    // check otp expiry
-    if (user.otpExpiry < Date.now()) {
-      return res.status(400).json({ message: "OTP expired" });
-    }
-
-    // verify user
-    user.isVerified = true;
-    user.otp = undefined;
-    user.otpExpiry = undefined;
+    const otp = generateOtp();
+    user.otp = otp;
+    user.otpExpiry = Date.now() + 10 * 60 * 1000;
 
     await user.save();
 
-    res.json({ message: "Email verified successfully" });
+    await sendEmail(
+      email,
+      "Resend OTP - Fake News Detector",
+      `Your OTP is ${otp}`
+    );
 
-  } catch (error) {
-    
+    res.json({ message: "OTP resent successfully" });
+
+  } catch (err) {
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 exports.loginUser = async (req, res) => {
   try {
