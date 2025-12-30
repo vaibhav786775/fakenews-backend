@@ -1,33 +1,21 @@
 const nodemailer = require("nodemailer");
 
+const transporter = nodemailer.createTransport({
+  host: "smtp.sendgrid.net",
+  port: 587,
+  auth: {
+    user: "apikey",
+    pass: process.env.SENDGRID_API_KEY,
+  },
+});
+
 const sendEmail = async (to, subject, text) => {
-  const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS
-    }
+  await transporter.sendMail({
+    from: "no-reply@fakenewsapp.com",
+    to,
+    subject,
+    text,
   });
-
-  try {
-    await transporter.verify();
-  } catch (err) {
-    console.error("Email transporter verify failed:", err);
-    throw new Error("Email transporter not ready: " + err.message);
-  }
-
-  try {
-    const info = await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to,
-      subject,
-      text
-    });
-    return info;
-  } catch (err) {
-    console.error("sendMail error:", err);
-    throw err;
-  }
 };
 
 module.exports = sendEmail;
