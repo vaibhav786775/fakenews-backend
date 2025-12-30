@@ -42,7 +42,7 @@ exports.registerUser = async (req, res) => {
     "Verify your email - Fake News Detector",
     `Your OTP is ${otp}. It is valid for 10 minutes.`
   );
-
+    
 
     res.status(201).json({
   message: "OTP sent to email. Please verify."
@@ -50,6 +50,7 @@ exports.registerUser = async (req, res) => {
 
 
   } catch (error) {
+    db.users.deleteOne({ email: req.body.email });
     res.status(500).json({ message: "Server error" });
   }
 };
@@ -91,6 +92,7 @@ exports.verifyOtp = async (req, res) => {
     res.json({ message: "Email verified successfully" });
 
   } catch (error) {
+    
     res.status(500).json({ message: "Server error" });
   }
 };
