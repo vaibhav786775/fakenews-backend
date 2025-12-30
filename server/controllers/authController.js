@@ -71,13 +71,18 @@ exports.resendOtp = async (req, res) => {
 
     await user.save();
 
-    await sendEmail(
-      email,
-      "Resend OTP - Fake News Detector",
-      `Your OTP is ${otp}`
-    );
+    try {
+      await sendEmail(
+        email,
+        "Resend OTP - Fake News Detector",
+        `Your OTP is ${otp}`
+      );
 
-    res.json({ message: "OTP resent successfully" });
+      res.json({ message: "OTP resent successfully" });
+    } catch (emailErr) {
+      console.error("Resend OTP email failed:", emailErr);
+      return res.status(500).json({ message: "Failed to send OTP email" });
+    }
 
   } catch (err) {
     res.status(500).json({ message: "Server error" });
@@ -150,13 +155,18 @@ exports.forgotPassword = async (req, res) => {
     await user.save();
 
     // send OTP email
-    await sendEmail(
-      email,
-      "Password Reset OTP",
-      `Your OTP for password reset is ${otp}`
-    );
+    try {
+      await sendEmail(
+        email,
+        "Password Reset OTP",
+        `Your OTP for password reset is ${otp}`
+      );
 
-    res.json({ message: "OTP sent to email" });
+      res.json({ message: "OTP sent to email" });
+    } catch (emailErr) {
+      console.error("Forgot password email failed:", emailErr);
+      return res.status(500).json({ message: "Failed to send OTP email" });
+    }
 
   } catch (error) {
     res.status(500).json({ message: "Server error" });
