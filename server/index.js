@@ -1,46 +1,37 @@
-const express = require('express');
-const mongoose = require('mongoose');
-const path = require('path');
-require("dotenv").config({ debug: true, path: path.resolve(__dirname, '.env') });
+const express = require("express");
+const mongoose = require("mongoose");
 const cors = require("cors");
 
 const app = express();
+
 app.use(cors());
-app.use(express.json())
+app.use(express.json());
 
-app.get("/", (req, res) => {
-  res.send("backend boom ");
-});
-
-const PORT = 3000;
-const mongoUri = process.env.MONGO_URI;
-//  all consts
+// routes
 const authRoutes = require("./routes/authRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const newsRoutes = require("./routes/newsRoutes");
 
+app.get("/", (req, res) => {
+  res.send("Backend is running 🚀");
+});
 
-//  uses 
-
-
-
+app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
-
-
-// routes
-
-app.use("/api/auth", authRoutes)
 app.use("/api/news", newsRoutes);
 
+// database + server
+const PORT = process.env.PORT || 3000;
+const mongoUri = process.env.MONGO_URI;
 
-// ....................................
-mongoose.connect(mongoUri)
+mongoose
+  .connect(mongoUri)
   .then(() => {
-    console.log("mongo db connected");
+    console.log("MongoDB connected");
     app.listen(PORT, () => {
-      console.log(`Server running on port http://localhost:${PORT}`);
+      console.log(`Server running on port ${PORT}`);
     });
   })
   .catch((error) => {
-    console.error("server is crashed ", error);
+    console.error("Server crashed:", error);
   });
